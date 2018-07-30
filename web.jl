@@ -3,7 +3,9 @@ using Blink
 
 # Blink.AtomShell.install()
 
-mutable struct PongEnv
+include("./env-config.jl")
+
+mutable struct WebEnv
     window
     scope
     reset
@@ -13,11 +15,10 @@ mutable struct PongEnv
     reward
     done
 
-    function PongEnv(test=true)
+    function WebEnv(test=true, files=["./lib/components.js", "./lib/style.css"])
         w = Blink.Window(Dict(:show => test))
         if (test) opentools(w) end
 
-        files = ["./lib/components.js", "./lib/style.css"]
         s = Scope(imports=files)
         s = s(
             dom"div.demo_wrapper"(
@@ -54,20 +55,22 @@ mutable struct PongEnv
         state = take!(state_box)
         new(w, s, false, state, action, result_box, 0, false)
     end
+
+    WebEnv(s::AbstractString, test=true) = WebEnv(test, env_config[s])
 end
 
-function reset!(env::PongEnv)
+function reset!(env::WebEnv)
     env.reset = true
 end
 
-state(env::PongEnv) = env.state
+state(env::WebEnv) = env.state
 
-function step!(f, env::PongEnv, s, a)
+function step!(f, env::WebEnv, s, a)
     play(env, a)
     return f(env.reward, env.state)
 end
 
-function play(env::PongEnv, a)
+function play(env::WebEnv, a)
     env.action[] = Dict("action"=>a, "reset"=>env.reset)
     res = take!(env.result)
     env.state = res["state"]
@@ -76,4 +79,4 @@ function play(env::PongEnv, a)
     env.reset = false
 end
 
-done(env::PongEnv) = env.done
+Base.done(env::WebEnv) = env.done
